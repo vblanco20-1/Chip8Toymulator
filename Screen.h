@@ -11,9 +11,7 @@ class Screen
 public:
 	Screen();
 	~Screen();
-
-	void SetPixel(bool value, unsigned short x, unsigned short y);
-	bool SetPixelXOR(bool val, unsigned short x, unsigned short y);
+		
 	bool TogglePixel(unsigned short x, unsigned short y);
 	void Clear();
 	void DrawFrame();

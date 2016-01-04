@@ -11,20 +11,8 @@ Chip8::Chip8()
 {
 }
 
-void UpdateTimer60hz(Chip8 machine)
-{
-	while (true)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000/60));
-		
-		
-
-	}
-}
-
 void PrintDissasembly(unsigned short opcode,std::string fname, int K)
 {
-
 	if (bDissasembly)
 	{
 		cout << std::hex << opcode << "=" << fname << ": " << "K = " << std::hex << K << endl;
@@ -58,37 +46,21 @@ void Chip8::uninplemented(unsigned short opcode)
 
 void Chip8::Initialize()
 {
-	InitializeFunctionPointers();
-
-	for (int m = 0; m < 80; m++)
-	{
-		memory[m] = chip8_fontset[m];
-	}
+	InitializeFunctionPointers();	
 	pc = 0x200;  // Program counter starts at 0x200
-	//opcode = 0;      // Reset current opcode	
+	
 	I = 0;      // Reset index register
 	sp = 0;      // Reset stack pointer
 
-				 // Clear display	
-				 // Clear stack
-				 // Clear registers V0-VF
-				 // Clear memory
-
-				 // Load fontset
-	//for (int i = 0; i < 80; ++i)
-	//	memory[i] = chip8_fontset[i];
-
-	// Reset timers
-
-
+	for (int m = 0; m < 80; m++) //load fontset
+	{
+		memory[m] = chip8_fontset[m];
+	}
 }
 
 void Chip8::InitializeFunctionPointers()
 {
-
-
-	auto t = std::placeholders::_1;
-	
+	auto t = std::placeholders::_1;	
 	EmulatorFunctions = {
 		bind(&Chip8::graphics,this,t), //0x0
 		bind(&Chip8::jmp,this,t), //0x1
@@ -125,7 +97,6 @@ void Chip8::InitializeFunctionPointers()
 		bind(&Chip8::shl,this,t), //0xE
 		bind(&Chip8::noop,this,t) //0xF
 	};
-
 		
 	ExtraFunctions = vector<function<void(unsigned short)>>(16, bind(&Chip8::noop, this, t));
 
@@ -137,13 +108,6 @@ void Chip8::InitializeFunctionPointers()
 	ExtraFunctions[0x0] = bind(&Chip8::xfont, this,t);
 	ExtraFunctions[0x3] = bind(&Chip8::bcd, this,t);
 	ExtraFunctions[0xE] = bind(&Chip8::adi, this,t);
-
-	
-
-
-
-
-
 }
 
 void Chip8::EmulateCycle()
@@ -151,29 +115,19 @@ void Chip8::EmulateCycle()
 
 	//fetch
 	unsigned short opcode = FetchInstruction();
-	//decode
+	
 
 	if (opcode != 0)
 	{
-		EmulatorFunctions[(opcode & 0xF000) >> 12](opcode);
-		//Ch8Function fun = GetFunctionFromOPCode(opcode);
-		////execute (jesus christ the function pointer syntax)
-		//if (fun != nullptr)
-		//{
-		//	((this)->*(fun))(opcode);
-		//}
-		
-
-		
+		//execute the opcode
+		EmulatorFunctions[(opcode & 0xF000) >> 12](opcode);		
 	}
-	//cout << std::hex << opcode << endl;
+	
 	if (drawFlag)
 	{
 		screen.DrawFrame();
 		drawFlag = false;
-	}
-		
-	
+	}	
 }
 
 void Chip8::Run()
@@ -184,7 +138,6 @@ void Chip8::Run()
 		SDL_Event event;
 		while(SDL_PollEvent(&event))
 		{
-
 			if ((SDL_QUIT == event.type) ||
 				(SDL_KEYDOWN == event.type && SDL_SCANCODE_ESCAPE == event.key.keysym.scancode))
 			{
@@ -193,11 +146,8 @@ void Chip8::Run()
 			else
 			{
 				keypad.UpdateInput(&event);
-			}
-			
+			}			
 		}
-
-
 		EmulateCycle();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		t += 1;
@@ -222,8 +172,6 @@ void Chip8::Run()
 
 bool Chip8::LoadRom(std::string filename)
 {
-
-
 	ifstream rom;
 	rom.open(filename, ios::binary);
 
@@ -234,17 +182,9 @@ bool Chip8::LoadRom(std::string filename)
 		auto memblock = new char[size];
 		rom.seekg(0, ios::beg);
 		rom.read(memblock, size);
-		memcpy(&memory[512], memblock, size);
-		//for (int m = 0; m < size; m++)
-		//{
-		//	memory[512 + m] = memblock[m];
-		//	//cout << memblock[m];
-		//}
-
-		cout << "ROM successfully loaded: " << filename << endl;
-
+		memcpy(&memory[512], memblock, size);	
 		
-		
+		cout << "ROM successfully loaded: " << filename << endl;		
 
 		delete[] memblock;
 		return true;
@@ -258,7 +198,6 @@ unsigned short Chip8::FetchInstruction()
 	unsigned short r = memory[pc] << 8 | memory[pc + 1];
 	pc += 2;
 	return r;
-
 }
 
 void Chip8::noop(unsigned short opcode)
@@ -273,7 +212,6 @@ void Chip8::cls(unsigned short opcode)
 
 void Chip8::rts(unsigned short opcode)
 {
-
 	PrintDissasembly(opcode, "RET", 0);
 	stack[sp] = 0;
 	pc = stack[sp - 1];
@@ -282,12 +220,14 @@ void Chip8::rts(unsigned short opcode)
 
 void Chip8::jmp(unsigned short opcode)
 {
-	PrintDissasembly(opcode, "JMP", opcode & 0x0FFF); pc = opcode & 0x0FFF;
+	PrintDissasembly(opcode, "JMP", opcode & 0x0FFF); 
+	pc = opcode & 0x0FFF;
 }
 
 void Chip8::jsr(unsigned short opcode)
 {
-	PrintDissasembly(opcode, "JSR", opcode & 0x0FFF); stack[sp] = pc; sp++; pc = opcode & 0x0FFF;
+	PrintDissasembly(opcode, "JSR", opcode & 0x0FFF); 
+	stack[sp] = pc; sp++; pc = opcode & 0x0FFF;
 }
 
 void Chip8::skeqc(unsigned short opcode)
@@ -327,17 +267,14 @@ void Chip8::skeqr(unsigned short opcode)
 
 void Chip8::movc(unsigned short opcode)
 {
-
 	char constant = opcode & 0x00FF;
 	short reg = (opcode & 0x0F00) >> 8;
-
 	PrintDissasemblyConstant(opcode, "MOV ", reg, constant);
 	V[reg] = constant;
 }
 
 void Chip8::addc(unsigned short opcode)
 {
-
 	char constant = opcode & 0x00FF;
 	short reg = (opcode & 0x0F00) >> 8;
 	PrintDissasemblyConstant(opcode, "ADD ", reg, constant);
@@ -349,7 +286,6 @@ void Chip8::movr(unsigned short opcode)
 	char vy = (opcode & 0x00F0) >> 4;
 	char vx = (opcode & 0x0F00) >> 8;
 	V[vx] = V[vy];
-
 	PrintDissasembly(opcode, "MOV ", vx, vx);
 }
 
@@ -425,15 +361,12 @@ void Chip8::skner(unsigned short opcode)
 	{
 		pc += 2;
 	}
-	//uninplemented(opcode);
 }
 
 void Chip8::mvi(unsigned short opcode)
-{
-	//remove first 4 bits
+{	
 	I = opcode & 0x0FFF;
-	PrintDissasembly(opcode, "MVI ", I);
-	
+	PrintDissasembly(opcode, "MVI ", I);	
 }
 
 void Chip8::jmi(unsigned short opcode)
@@ -448,9 +381,7 @@ void Chip8::randc(unsigned short opcode)
 	unsigned short x = (opcode & 0x0F00) >> 8;
 	unsigned short kk= (opcode & 0x00FF);
 	PrintDissasemblyConstant(opcode, "RND ", x, kk);
-
-	V[x] = rnd & kk;
-	//uninplemented(opcode);
+	V[x] = rnd & kk;	
 }
 
 void Chip8::sprite(unsigned short opcode)
@@ -473,11 +404,9 @@ void Chip8::sprite(unsigned short opcode)
 					bool c = screen.TogglePixel(x + xline, y + yline);
 					if (c)
 					{
-						V[0xF] = 1;
-						
+						V[0xF] = 1;						
 					}
-				}
-					
+				}					
 			}
 		}
 	}
@@ -488,7 +417,6 @@ void Chip8::sprite(unsigned short opcode)
 	else
 	{
 		PrintDissasembly(opcode, "DRW -  Collision", ((opcode & 0x0F00) >> 8), (opcode & 0x00F0) >> 4);
-
 	}
 	drawFlag = true;
 	
@@ -496,7 +424,6 @@ void Chip8::sprite(unsigned short opcode)
 
 void Chip8::skpr(unsigned short opcode)
 {
-
 	PrintDissasembly(opcode, "SKPR ", ((opcode & 0x0F00) >> 8));
 	if (keypad.IsKeyPressed(V[(opcode & 0x0F00) >> 8])) {
 		pc += 2;
@@ -506,7 +433,6 @@ void Chip8::skpr(unsigned short opcode)
 void Chip8::skup(unsigned short opcode)
 {
 	PrintDissasembly(opcode, "SKUP ", ((opcode & 0x0F00) >> 8));
-
 	if (!keypad.IsKeyPressed(V[(opcode & 0x0F00) >> 8])) {
 		pc += 2;
 	}
@@ -520,7 +446,6 @@ void Chip8::gdelay(unsigned short opcode)
 
 void Chip8::keyr(unsigned short opcode)
 {
-
 	PrintDissasembly(opcode, "KEYR ", ((opcode & 0x0F00) >> 8));
 	V[(opcode & 0x0F00) >> 8] = keypad.WaitForKeypress();
 }
@@ -550,15 +475,12 @@ void Chip8::font(unsigned short opcode)
 {
 	unsigned char f = (opcode & 0x0F00) >> 8;
 	I = f * 5;
-
 	PrintDissasembly(opcode, "LD F", (opcode & 0x0F00) >> 8);
 }
 
 void Chip8::xfont(unsigned short opcode)
 {
-	PrintDissasembly(opcode, "NOT FOR THIS MACHINEEEE", (opcode & 0x0F00) >> 8);
-	//unsigned char f = (opcode & 0x0F00) >> 8;
-	//I = f * 10;
+	PrintDissasembly(opcode, "NOT FOR THIS MACHINEEEE", (opcode & 0x0F00) >> 8);	
 }
 
 void Chip8::bcd(unsigned short opcode)
@@ -571,7 +493,6 @@ void Chip8::bcd(unsigned short opcode)
 	memory[I] = Vr / 100;
 	memory[I + 1] = (Vr / 10) % 10 ;
 	memory[I + 2] =Vr % 10;
-
 	PrintDissasembly(opcode, "BCD", (opcode & 0x0F00) >> 8);
 }
 
@@ -580,11 +501,10 @@ void Chip8::str(unsigned short opcode)
 	unsigned char r = (opcode & 0x0F00) >> 8;
 	for (int i = 0; i <= r; i++)
 	{
-		memory[I + i] = V[i];
-		//V[i] = ;
+		memory[I + i] = V[i];		
 	}
 	PrintDissasembly(opcode, "STR", (opcode & 0x0F00) >> 8);
-	//uninplemented(opcode);
+	
 }
 
 void Chip8::ldr(unsigned short opcode)
@@ -594,8 +514,7 @@ void Chip8::ldr(unsigned short opcode)
 	{
 		V[i] = memory[I + i];
 	}
-	PrintDissasembly(opcode, "LDR", (opcode & 0x0F00) >> 8);
-	//uninplemented(opcode);
+	PrintDissasembly(opcode, "LDR", (opcode & 0x0F00) >> 8);	
 }
 
 
@@ -641,6 +560,5 @@ void Chip8::extra(unsigned short opcode)
 	else
 	{
 		ExtraFunctions[(opcode & 0x000F)](opcode);
-	}
-	
+	}	
 }

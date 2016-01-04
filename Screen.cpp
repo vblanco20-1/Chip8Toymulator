@@ -7,7 +7,6 @@ Screen::Screen()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-
 	window = window = SDL_CreateWindow
 		(
 			"SDL2",
@@ -53,57 +52,6 @@ Screen::~Screen()
 	SDL_DestroyWindow(window);
 }
 
-void Screen::SetPixel(bool value, unsigned short x, unsigned short y)
-{
-	
-	const unsigned int offset = (ScreenWidth * 4 * y) + x * 4;
-	if (value)
-	{
-		pixels[offset + 0] = 255;        // b
-		pixels[offset + 1] = 255;        // g
-		pixels[offset + 2] = 255;        // r
-		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-	}
-	else
-	{
-		pixels[offset + 0] = 0;        // b
-		pixels[offset + 1] = 0;        // g
-		pixels[offset + 2] = 0;        // r
-		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-
-	}
-
-}
-
-bool Screen::SetPixelXOR(bool value, unsigned short x, unsigned short y)
-{
-	const unsigned int offset = (ScreenWidth * 4 * y) + x * 4;
-	if (value && pixels[offset + 0] == 255)
-	{
-		pixels[offset + 0] = 0;        // b
-		pixels[offset + 1] = 0;        // g
-		pixels[offset + 2] = 0;        // r
-		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-		return true;
-	}
-	else if (value || pixels[offset + 0] == 255)
-	{
-		pixels[offset + 0] = 255;        // b
-		pixels[offset + 1] = 255;        // g
-		pixels[offset + 2] = 255;        // r
-		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-	}
-	else
-	{
-		pixels[offset + 0] = 0;        // b
-		pixels[offset + 1] = 0;        // g
-		pixels[offset + 2] = 0;        // r
-		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-	}
-
-	return false;
-}
-
 bool Screen::TogglePixel(unsigned short x, unsigned short y)
 {
 	const unsigned int offset = (ScreenWidth * 4 * y) + x * 4;
@@ -113,6 +61,7 @@ bool Screen::TogglePixel(unsigned short x, unsigned short y)
 		pixels[offset + 1] = 255;        // g
 		pixels[offset + 2] = 255;        // r
 		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
+		return false;
 	}
 	else
 	{
@@ -121,9 +70,8 @@ bool Screen::TogglePixel(unsigned short x, unsigned short y)
 		pixels[offset + 2] = 0;        // r
 		pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
 		return true;
-
 	}
-	return false;
+	
 }
 
 void Screen::Clear()
@@ -137,23 +85,7 @@ void Screen::Clear()
 void Screen::DrawFrame()
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderClear(renderer);
-
-	
-
-	//// splat down some random pixels
-	//for (unsigned int i = 0; i < 1000; i++)
-	//{
-	//	const unsigned int x = rand() % texWidth;
-	//	const unsigned int y = rand() % texHeight;
-
-	//	const unsigned int offset = (texWidth * 4 * y) + x * 4;
-	//	pixels[offset + 0] = rand() % 256;        // b
-	//	pixels[offset + 1] = rand() % 256;        // g
-	//	pixels[offset + 2] = rand() % 256;        // r
-	//	pixels[offset + 3] = SDL_ALPHA_OPAQUE;    // a
-	//}
-
+	SDL_RenderClear(renderer);	
 
 	SDL_UpdateTexture
 		(
@@ -165,5 +97,4 @@ void Screen::DrawFrame()
 
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
-
 }

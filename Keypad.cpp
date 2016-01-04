@@ -16,16 +16,13 @@ unsigned char Keypad::WaitForKeypress()
 				{
 					return cd;
 				}
-
 			}
-
 		}
 	}
 }
 
 void Keypad::UpdateInput(SDL_Event *event)
-{
-	
+{	
 	if (SDL_KEYDOWN == event->type)
 	{
 		unsigned char cd = ScancodeToChar(event->key.keysym.sym);
@@ -33,7 +30,6 @@ void Keypad::UpdateInput(SDL_Event *event)
 		{
 			keypad[cd] = true;
 		}
-
 	}
 	else if (SDL_KEYUP == event->type)
 	{
@@ -42,8 +38,7 @@ void Keypad::UpdateInput(SDL_Event *event)
 		{
 			keypad[cd] = false;
 		}
-	}
-	
+	}	
 }
 
 bool Keypad::IsKeyPressed(unsigned char key)
