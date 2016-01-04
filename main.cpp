@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	Chip8 *machine = new Chip8();
 
 	machine->Initialize();
-	machine->LoadRom("Roms/ZeroDemo.ch8");
+	machine->LoadRom("Roms/INVADERS");
 
 	machine->Run();
 	delete machine;

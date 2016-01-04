@@ -85,51 +85,64 @@ void Chip8::Initialize()
 
 void Chip8::InitializeFunctionPointers()
 {
-	for (int i = 0; i < 16; i++)
-	{
-		FunctionArray[i] = nullptr;
-		ArithmeticFunctions[i] = nullptr;
-		OtherFunctions[i] = nullptr;
-	}
 
-	FunctionArray[0] = nullptr; //need other table
-	FunctionArray[1] = &Chip8::jmp;
-	FunctionArray[2] = &Chip8::jsr;
-	FunctionArray[3] = &Chip8::skeqc;
-	FunctionArray[4] = &Chip8::sknec;
-	FunctionArray[5] = &Chip8::skeqr;
-	FunctionArray[6] = &Chip8::movc;
-	FunctionArray[7] = &Chip8::addc;
-	FunctionArray[8] = nullptr; // 8 its for arithmetic, that goes in other array
-	FunctionArray[9] = &Chip8::skner;
-	FunctionArray[10] = &Chip8::mvi; //a
-	FunctionArray[11] = &Chip8::jmi; //b
-	FunctionArray[12] = &Chip8::randc; //c
-	FunctionArray[13] = &Chip8::sprite; //d
-	FunctionArray[14] = nullptr; //e special functions for input
-	FunctionArray[15] = nullptr; //f others, need other table
 
+	auto t = std::placeholders::_1;
+	
+	EmulatorFunctions = {
+		bind(&Chip8::graphics,this,t), //0x0
+		bind(&Chip8::jmp,this,t), //0x1
+		bind(&Chip8::jsr,this,t), //0x2
+		bind(&Chip8::skeqc,this,t), //0x3
+		bind(&Chip8::sknec,this,t), //0x4
+		bind(&Chip8::skeqr,this,t), //0x5
+		bind(&Chip8::movc,this,t), //0x6
+		bind(&Chip8::addc,this,t), //0x7
+		bind(&Chip8::arithmetic,this,t), //0x8
+		bind(&Chip8::skner,this,t), //0x9
+		bind(&Chip8::mvi,this,t), //0xA
+		bind(&Chip8::jmi,this,t), //0xB
+		bind(&Chip8::randc,this,t), //0xC
+		bind(&Chip8::sprite,this,t), //0xD
+		bind(&Chip8::keyfunction,this,t), //0xE
+		bind(&Chip8::extra,this,t) //0xF
+	};
+	Arithmetic = {
+		bind(&Chip8::movr,this,t), //0x0
+		bind(&Chip8::_or,this,t), //0x1
+		bind(&Chip8::_and,this,t), //0x2
+		bind(&Chip8::_xor,this,t), //0x3
+		bind(&Chip8::addr,this,t), //0x4
+		bind(&Chip8::sub,this,t), //0x5
+		bind(&Chip8::shr,this,t), //0x6
+		bind(&Chip8::rsb,this,t), //0x7
+		bind(&Chip8::noop,this,t), //0x8
+		bind(&Chip8::noop,this,t), //0x9
+		bind(&Chip8::noop,this,t), //0xA
+		bind(&Chip8::noop,this,t), //0xB
+		bind(&Chip8::noop,this,t), //0xC
+		bind(&Chip8::noop,this,t), //0xD
+		bind(&Chip8::shl,this,t), //0xE
+		bind(&Chip8::noop,this,t) //0xF
+	};
+
+		
+	ExtraFunctions = vector<function<void(unsigned short)>>(16, bind(&Chip8::noop, this, t));
+
+	ExtraFunctions[0x7] = bind(&Chip8::gdelay, this,t);
+	ExtraFunctions[0xA] = bind(&Chip8::keyr, this,t);
+	ExtraFunctions[0x8] = bind(&Chip8::ssound, this,t);
+	ExtraFunctions[0xE] = bind(&Chip8::adi, this,t);
+	ExtraFunctions[0x9] = bind(&Chip8::font, this,t);
+	ExtraFunctions[0x0] = bind(&Chip8::xfont, this,t);
+	ExtraFunctions[0x3] = bind(&Chip8::bcd, this,t);
+	ExtraFunctions[0xE] = bind(&Chip8::adi, this,t);
 
 	
-	OtherFunctions[7] = &Chip8::gdelay;
-	OtherFunctions[0xA] = &Chip8::keyr;	
-	OtherFunctions[8] = &Chip8::ssound;
-	OtherFunctions[0xE] = &Chip8::adi;
-	OtherFunctions[0x9] = &Chip8::font;
-	OtherFunctions[0x0] = &Chip8::xfont;
-	OtherFunctions[0x3] = &Chip8::bcd;
-	OtherFunctions[0xE] = &Chip8::adi;
 
 
-	ArithmeticFunctions[0] = &Chip8::movr;
-	ArithmeticFunctions[1] = &Chip8::_or;
-	ArithmeticFunctions[2] = &Chip8::_and;
-	ArithmeticFunctions[3] = &Chip8::_xor;
-	ArithmeticFunctions[4] = &Chip8::addr;
-	ArithmeticFunctions[5] = &Chip8::sub;
-	ArithmeticFunctions[6] = &Chip8::shr;
-	ArithmeticFunctions[7] = &Chip8::rsb;
-	ArithmeticFunctions[0xE] = &Chip8::shl;
+
+
 
 }
 
@@ -142,12 +155,13 @@ void Chip8::EmulateCycle()
 
 	if (opcode != 0)
 	{
-		Ch8Function fun = GetFunctionFromOPCode(opcode);
-		//execute (jesus christ the function pointer syntax)
-		if (fun != nullptr)
-		{
-			((this)->*(fun))(opcode);
-		}
+		EmulatorFunctions[(opcode & 0xF000) >> 12](opcode);
+		//Ch8Function fun = GetFunctionFromOPCode(opcode);
+		////execute (jesus christ the function pointer syntax)
+		//if (fun != nullptr)
+		//{
+		//	((this)->*(fun))(opcode);
+		//}
 		
 
 		
@@ -584,70 +598,49 @@ void Chip8::ldr(unsigned short opcode)
 	//uninplemented(opcode);
 }
 
-Ch8Function Chip8::GetFunctionFromOPCode(const unsigned short opcode)
+
+void Chip8::graphics(unsigned short opcode)
 {
-	char fn = (opcode & 0xF000) >> 12;
+	if (opcode == 0x00E0)
+	{
+		cls(opcode);
+	}
+	else if (opcode == 0x00EE)
+	{
+		rts(opcode);
+	}
+}
 
-	auto function = FunctionArray[fn];
-	if (function == nullptr) // other
-	{
-		if (fn == 8) //arithmetic
-		{
-			function = ArithmeticFunctions[opcode & 0x000F];
-		}
-		else if (fn == 0)
-		{
-			if (opcode == 0x00E0)
-			{
-				function = &Chip8::cls;
-			}
-			else if (opcode == 0x00EE)
-			{
-				function = &Chip8::rts;
-			}
-		}
-		else if (fn == 14) //0xE, input functions
-		{
-			if ((opcode & 0x00FF) == 0x009E)
-			{
-				function = &Chip8::skpr;
-			}
-			else if ((opcode & 0x00FF) == 0x00A1)
-			{
-				function = &Chip8::skup;
-			}
-		}
-		else if (fn == 15) // 0xF other functions
-		{
-			
-			function = OtherFunctions[opcode & 0x000F];
-			if (function == nullptr && (opcode & 0x000F) == 0x0005) // ending in 5 there is 3 possibilities
-			{
-				if ((opcode & 0x00F0) == 0x0010)
-				{
-					function = &Chip8::sdelay;
-				}
-				else if ((opcode & 0x00F0) == 0x0050)
-				{
-					function = &Chip8::str;
-				}
-				else if ((opcode & 0x00F0 )== 0x0060)
-				{
-					function = &Chip8::ldr;
-				}
-			}
-		}
-	}
-	if (function == nullptr && opcode != 0)
-	{
-		
-		cout << "opcode error, function not found, = " << opcode << endl;
+void Chip8::arithmetic(unsigned short opcode)
+{
+	Arithmetic[opcode & 0x000F](opcode);
+}
 
-		
-	}
-	if (opcode == 0)
+void Chip8::keyfunction(unsigned short opcode)
+{
+	if ((opcode & 0x00FF) == 0x009E)
 	{
-		function = &Chip8::noop;
+		skpr(opcode);
 	}
-	return function;
+	else if ((opcode & 0x00FF) == 0x00A1)
+	{
+		skup(opcode);
+	}
+}
+
+void Chip8::extra(unsigned short opcode)
+{
+	if ((opcode & 0x000F) == 0x0005) // ending in 5 there is 3 possibilities
+	{
+		switch (opcode & 0x00F0) {
+		case 0x0010: sdelay(opcode); break;
+		case 0x0050: str(opcode); break;
+		case 0x0060: ldr(opcode); break;
+		}		
+	}
+	else
+	{
+		ExtraFunctions[(opcode & 0x000F)](opcode);
+	}
+	
 }

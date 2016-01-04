@@ -3,9 +3,11 @@
 #include "Keypad.h"
 #include <string>
 #include <iostream>
+#include <functional>
 class Chip8;
 constexpr bool bDissasembly = true;
-typedef void(Chip8::*Ch8Function)(unsigned short);
+
+
 
 void PrintDissasembly(unsigned short opcode,std::string fname, int K);
 void PrintDissasembly(unsigned short opcode,std::string fname, char Vx, char Vy );
@@ -19,9 +21,7 @@ public:
 	~Chip8();
 
 	void uninplemented(unsigned short opcode);
-	Ch8Function FunctionArray[16];
-	Ch8Function ArithmeticFunctions[16];
-	Ch8Function OtherFunctions[16];
+	
 	void Initialize();
 	void InitializeFunctionPointers();
 	void EmulateCycle();
@@ -71,7 +71,6 @@ public:
 	void bcd(unsigned short opcode);
 	void str(unsigned short opcode);
 	void ldr(unsigned short opcode);
-	Ch8Function GetFunctionFromOPCode(const unsigned short opcode);
 	
 	Screen screen;
 	Keypad keypad;
@@ -90,9 +89,7 @@ public:
 	unsigned char delay_timer;
 	unsigned char sound_timer;
 
-	//keypad
-	unsigned char key[16];
-
+	
 	const unsigned char chip8_fontset[80] =
 	{
 		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -113,7 +110,14 @@ public:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
+	//function pointers for the instruction decoding using arrays
+	std::vector<std::function<void(unsigned short)>> EmulatorFunctions;
+	std::vector<std::function<void(unsigned short)>> Arithmetic;
+	std::vector<std::function<void(unsigned short)>> ExtraFunctions;
 
-
+	void graphics(unsigned short opcode);
+	void arithmetic(unsigned short opcode);
+	void keyfunction(unsigned short opcode);
+	void extra(unsigned short opcode);
 };
 
